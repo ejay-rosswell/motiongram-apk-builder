@@ -66,15 +66,21 @@ jobs:
           </resources>
           EOF
 
-      - name: Build MotionGram APK via Gradle (arm64-v8a)
+      - name: Build MotionGram Standalone APK (arm64-v8a)
         run: |
           chmod +x ./gradlew
-          ./gradlew assembleAfatDebug -PtargetAbi=arm64-v8a --no-daemon --stacktrace
+          # Build Standalone APK which produces standard apk file
+          ./gradlew :TMessagesProj_AppStandalone:assembleAfatDebug -PtargetAbi=arm64-v8a --no-daemon --stacktrace
+
+      - name: Locate Generated APKs
+        run: |
+          echo "Searching for built APK files..."
+          find . -name "*.apk" -type f -exec ls -la {} +
 
       - name: Upload MotionGram APK Artifact
         uses: actions/upload-artifact@v4
         with:
           name: MotionGram-iOS-APK
-          path: TMessagesProj/build/outputs/apk/**/*.apk
+          path: '**/*.apk'
           retention-days: 14
           if-no-files-found: error
