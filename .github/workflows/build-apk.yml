@@ -37,36 +37,27 @@ jobs:
           java-version: '17'
           cache: 'gradle'
 
-      - name: Set up Android NDK & SDK
-        uses: nttld/setup-ndk@v1
-        with:
-          ndk-version: r25c
+      - name: Set up Android SDK & NDK via sdkmanager
+        run: |
+          echo "Installing NDK r25c via standard Android sdkmanager..."
+          yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --install "ndk;25.2.9519653" "cmake;3.22.1"
+          echo "ANDROID_NDK_HOME=$ANDROID_HOME/ndk/25.2.9519653" >> $GITHUB_ENV
+          echo "NDK installation complete."
 
       - name: Configure Telegram API Credentials & MotionGram Identity
         run: |
-          echo "Configuring MotionGram credentials and properties..."
-          
-          # 1. Create local.properties with API ID and Hash
           cat <<EOF > local.properties
           sdk.dir=$ANDROID_HOME
-          ndk.dir=$ANDROID_NDK_HOME
+          ndk.dir=$ANDROID_HOME/ndk/25.2.9519653
           APP_ID=31757989
           APP_HASH=c75cf21b4b0e26bbc878f74dd298ba72
           EOF
 
-          # 2. Update Application display name to MotionGram
           sed -i 's/<string name="AppName">Telegram<\/string>/<string name="AppName">MotionGram<\/string>/g' TMessagesProj/src/main/res/values/strings.xml || true
           sed -i 's/<string name="AppNameBeta">Telegram Beta<\/string>/<string name="AppNameBeta">MotionGram<\/string>/g' TMessagesProj/src/main/res/values/strings.xml || true
 
       - name: Inject 1:1 iOS UI Theme, Bubble Radius & Colors
         run: |
-          echo "Patching Android color values and theme resources to match iOS..."
-          
-          # Overwrite base light theme values with iOS colors
-          # Outgoing bubbles: #E1FEC6 (iOS Light Green)
-          # Incoming bubbles: #FFFFFF
-          # Header: #F6F6F6 (iOS Translucent Navigation)
-          # Accent: #007AFF (Apple System Blue)
           cat << 'EOF' > TMessagesProj/src/main/res/values/colors_ios_motiongram.xml
           <?xml version="1.0" encoding="utf-8"?>
           <resources>
@@ -82,7 +73,6 @@ jobs:
       - name: Build MotionGram APK via Gradle
         run: |
           chmod +x ./gradlew
-          # Build universal debug APK with all ABI architectures (arm64-v8a, armeabi-v7a, x86_64)
           ./gradlew assembleAfatDebug --stacktrace --max-workers=4
 
       - name: Upload MotionGram APK Artifact
