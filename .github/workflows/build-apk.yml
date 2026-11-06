@@ -55,17 +55,17 @@ jobs:
 
       - name: Set Custom Package Name to com.motiongram.app
         run: |
-          echo "Setting package name (applicationId) to com.motiongram.app..."
+          echo "Configuring package name (applicationId) to com.motiongram.app..."
           # Update applicationId in build.gradle files
           find . -name "build.gradle" -exec sed -i 's/applicationId "org.telegram.messenger.web"/applicationId "com.motiongram.app"/g' {} + || true
           find . -name "build.gradle" -exec sed -i 's/applicationId "org.telegram.messenger"/applicationId "com.motiongram.app"/g' {} + || true
           find . -name "build.gradle" -exec sed -i 's/applicationId "org.telegram.messenger.beta"/applicationId "com.motiongram.app"/g' {} + || true
           find . -name "*.gradle" -exec sed -i 's/"org.telegram.messenger.web"/"com.motiongram.app"/g' {} + || true
 
-      - name: Set Unique Purple Motion Icon
+      - name: Set Unique Purple Motion Vector Icon (XML Vector Replacement)
         run: |
           echo "Writing custom Purple Motion Vector Icon..."
-          cat << 'EOF' > ic_launcher_purple.xml
+          cat << 'EOF' > /tmp/ic_launcher_purple.xml
           <?xml version="1.0" encoding="utf-8"?>
           <vector xmlns:android="http://schemas.android.com/apk/res/android"
               xmlns:aapt="http://schemas.android.com/aapt"
@@ -114,9 +114,8 @@ jobs:
           </vector>
           EOF
 
-          # Overwrite launcher icons across all res directories
-          find . -name "ic_launcher*.xml" -exec cp ic_launcher_purple.xml {} + || true
-          find . -name "ic_launcher*.png" -exec cp ic_launcher_purple.xml {}.xml \; || true
+          # Overwrite only XML-based adaptive launcher icons cleanly
+          find . -name "ic_launcher*.xml" -exec cp /tmp/ic_launcher_purple.xml {} + || true
 
       - name: Inject 1:1 iOS UI Theme, Bubble Radius & Colors
         run: |
