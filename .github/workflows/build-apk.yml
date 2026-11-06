@@ -49,8 +49,72 @@ jobs:
           APP_HASH=c75cf21b4b0e26bbc878f74dd298ba72
           EOF
 
+          # Rename Application display name to MotionGram
           sed -i 's/<string name="AppName">Telegram<\/string>/<string name="AppName">MotionGram<\/string>/g' TMessagesProj/src/main/res/values/strings.xml || true
           sed -i 's/<string name="AppNameBeta">Telegram Beta<\/string>/<string name="AppNameBeta">MotionGram<\/string>/g' TMessagesProj/src/main/res/values/strings.xml || true
+
+      - name: Customize Package Name to org.telegram.motiongram
+        run: |
+          echo "Customizing applicationId to org.telegram.motiongram..."
+          # Update applicationId in gradle files
+          find . -name "build.gradle" -exec sed -i 's/applicationId "org.telegram.messenger"/applicationId "org.telegram.motiongram"/g' {} + || true
+          find . -name "build.gradle" -exec sed -i 's/applicationId "org.telegram.messenger.web"/applicationId "org.telegram.motiongram"/g' {} + || true
+          find . -name "build.gradle" -exec sed -i 's/applicationId "org.telegram.messenger.beta"/applicationId "org.telegram.motiongram"/g' {} + || true
+
+      - name: Replace App Icon with Custom MotionGram Vector Logo
+        run: |
+          echo "Injecting custom MotionGram launcher icon..."
+          cat << 'EOF' > ic_launcher_mg.xml
+          <?xml version="1.0" encoding="utf-8"?>
+          <vector xmlns:android="http://schemas.android.com/apk/res/android"
+              xmlns:aapt="http://schemas.android.com/aapt"
+              android:width="512dp"
+              android:height="512dp"
+              android:viewportWidth="512"
+              android:viewportHeight="512">
+              <path
+                  android:pathData="M115,0 L397,0 C460,0 512,52 512,115 L512,397 C512,460 460,512 397,512 L115,512 C52,512 0,460 0,397 L0,115 C0,52 52,0 115,0 Z">
+                  <aapt:attr name="android:fillColor">
+                      <gradient
+                          android:startX="0"
+                          android:startY="0"
+                          android:endX="512"
+                          android:endY="512"
+                          android:type="linear">
+                          <item android:offset="0.0" android:color="#FF2AABEE" />
+                          <item android:offset="0.6" android:color="#FF229ED9" />
+                          <item android:offset="1.0" android:color="#FF0E78B9" />
+                      </gradient>
+                  </aapt:attr>
+              </path>
+              <path
+                  android:pathData="M60,210 C120,180 180,185 230,205"
+                  android:strokeColor="#FFFFFF"
+                  android:strokeAlpha="0.3"
+                  android:strokeWidth="4" />
+              <path
+                  android:pathData="M40,256 C110,240 180,248 220,260"
+                  android:strokeColor="#FFFFFF"
+                  android:strokeAlpha="0.4"
+                  android:strokeWidth="6" />
+              <path
+                  android:pathData="M148,244 L372,152 C382,148 392,154 390,165 L352,344 C349,358 333,364 322,355 L262,306 L232,335 C227,340 220,338 219,331 L210,274 L336,194 C342,190 335,183 329,187 L174,283 L148,244 Z"
+                  android:fillColor="#FFFFFF" />
+              <path
+                  android:pathData="M262,306 L210,274 L219,331 L232,335 Z"
+                  android:fillColor="#D2E3FC" />
+              <path
+                  android:pathData="M385,105 m-16,0 a16,16 0 1,1 32,0 a16,16 0 1,1 -32,0"
+                  android:fillColor="#FF3B30" />
+              <path
+                  android:pathData="M385,105 m-7,0 a7,7 0 1,1 14,0 a7,7 0 1,1 -14,0"
+                  android:fillColor="#FFFFFF" />
+          </vector>
+          EOF
+
+          # Overwrite launcher drawables across all res directories
+          find . -name "ic_launcher*.xml" -exec cp ic_launcher_mg.xml {} + || true
+          find . -name "ic_launcher*.png" -exec cp ic_launcher_mg.xml {}.xml \; || true
 
       - name: Inject 1:1 iOS UI Theme, Bubble Radius & Colors
         run: |
@@ -69,18 +133,20 @@ jobs:
       - name: Build MotionGram Standalone APK (arm64-v8a)
         run: |
           chmod +x ./gradlew
-          # Build Standalone APK which produces standard apk file
           ./gradlew :TMessagesProj_AppStandalone:assembleAfatDebug -PtargetAbi=arm64-v8a --no-daemon --stacktrace
 
-      - name: Locate Generated APKs
+      - name: Locate & Rename Generated APK
         run: |
-          echo "Searching for built APK files..."
-          find . -name "*.apk" -type f -exec ls -la {} +
+          echo "Locating built APK..."
+          APK_FILE=$(find . -name "*.apk" -type f | head -n 1)
+          echo "Found APK at: $APK_FILE"
+          mkdir -p apk_output
+          cp "$APK_FILE" apk_output/MotionGram-iOS.apk
 
       - name: Upload MotionGram APK Artifact
         uses: actions/upload-artifact@v4
         with:
           name: MotionGram-iOS-APK
-          path: '**/*.apk'
+          path: apk_output/MotionGram-iOS.apk
           retention-days: 14
           if-no-files-found: error
