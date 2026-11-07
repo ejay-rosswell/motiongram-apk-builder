@@ -1,4 +1,4 @@
-name: Build MotionGram Android APK (iOS 1:1 Mod)
+name: Build MotionGram Android APK (com.motiongram.app & Purple Icon)
 
 on:
   workflow_dispatch:
@@ -40,7 +40,7 @@ jobs:
           yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --install "ndk;27.2.12479018" "cmake;3.22.1"
           df -h
 
-      - name: Configure Telegram API Credentials & MotionGram Identity
+      - name: Configure Telegram API Credentials
         run: |
           cat <<EOF > local.properties
           sdk.dir=$ANDROID_HOME
@@ -49,73 +49,103 @@ jobs:
           APP_HASH=c75cf21b4b0e26bbc878f74dd298ba72
           EOF
 
-          # Rename Application display name to MotionGram
-          sed -i 's/<string name="AppName">Telegram<\/string>/<string name="AppName">MotionGram<\/string>/g' TMessagesProj/src/main/res/values/strings.xml || true
-          sed -i 's/<string name="AppNameBeta">Telegram Beta<\/string>/<string name="AppNameBeta">MotionGram<\/string>/g' TMessagesProj/src/main/res/values/strings.xml || true
-
-      - name: Set Custom Package Name to com.motiongram.app
+      - name: Set App Name to MotionGram
         run: |
-          echo "Configuring package name (applicationId) to com.motiongram.app..."
-          # Update applicationId in build.gradle files
-          find . -name "build.gradle" -exec sed -i 's/applicationId "org.telegram.messenger.web"/applicationId "com.motiongram.app"/g' {} + || true
-          find . -name "build.gradle" -exec sed -i 's/applicationId "org.telegram.messenger"/applicationId "com.motiongram.app"/g' {} + || true
-          find . -name "build.gradle" -exec sed -i 's/applicationId "org.telegram.messenger.beta"/applicationId "com.motiongram.app"/g' {} + || true
-          find . -name "*.gradle" -exec sed -i 's/"org.telegram.messenger.web"/"com.motiongram.app"/g' {} + || true
+          # Rename Application display name to MotionGram in strings.xml
+          find . -name "strings.xml" -exec sed -i 's/<string name="AppName">Telegram<\/string>/<string name="AppName">MotionGram<\/string>/g' {} + || true
+          find . -name "strings.xml" -exec sed -i 's/<string name="AppNameBeta">Telegram Beta<\/string>/<string name="AppNameBeta">MotionGram<\/string>/g' {} + || true
 
-      - name: Set Unique Purple Motion Vector Icon (XML Vector Replacement)
+      - name: Set Hardcoded Package Name to com.motiongram.app
         run: |
-          echo "Writing custom Purple Motion Vector Icon..."
-          cat << 'EOF' > /tmp/ic_launcher_purple.xml
+          echo "Applying com.motiongram.app to gradle.properties and build.gradle files..."
+          # 1. Update APP_PACKAGE in root gradle.properties
+          sed -i 's/APP_PACKAGE=org.telegram.messenger/APP_PACKAGE=com.motiongram.app/g' gradle.properties
+          
+          # 2. Update all build.gradle files (remove .web suffix that standalone appends)
+          find . -name "build.gradle" -exec sed -i 's/applicationIdSuffix ".web"/applicationIdSuffix ""/g' {} + || true
+          find . -name "build.gradle" -exec sed -i 's/defaultConfig.applicationId = APP_PACKAGE/defaultConfig.applicationId = "com.motiongram.app"/g' {} + || true
+          find . -name "build.gradle" -exec sed -i 's/"org.telegram.messenger.web"/"com.motiongram.app"/g' {} + || true
+          find . -name "build.gradle" -exec sed -i 's/"org.telegram.messenger"/"com.motiongram.app"/g' {} + || true
+
+      - name: Replace Telegram Plane with Kinetic Purple Motion Logo
+        run: |
+          echo "Overwriting background gradient and icon foregrounds with Electric Purple Motion Theme..."
+          
+          # 1. Replace icon background with Vibrant Purple to Fuchsia Gradient
+          cat << 'EOF' > TMessagesProj/src/main/res/drawable/icon_background_sa.xml
           <?xml version="1.0" encoding="utf-8"?>
+          <shape xmlns:android="http://schemas.android.com/apk/res/android">
+              <gradient
+                  android:type="linear"
+                  android:angle="90"
+                  android:startColor="#4C1D95"
+                  android:centerColor="#7C3AED"
+                  android:endColor="#C026D3" />
+          </shape>
+          EOF
+
+          cat << 'EOF' > TMessagesProj/src/main/res/drawable/icon_background.xml
+          <?xml version="1.0" encoding="utf-8"?>
+          <shape xmlns:android="http://schemas.android.com/apk/res/android">
+              <gradient
+                  android:type="linear"
+                  android:angle="90"
+                  android:startColor="#4C1D95"
+                  android:centerColor="#7C3AED"
+                  android:endColor="#C026D3" />
+          </shape>
+          EOF
+
+          # 2. Replace the paper plane vector with the Kinetic Motion 'M' Iris
+          cat << 'EOF' > TMessagesProj/src/main/res/drawable/icon_plane.xml
           <vector xmlns:android="http://schemas.android.com/apk/res/android"
-              xmlns:aapt="http://schemas.android.com/aapt"
-              android:width="512dp"
-              android:height="512dp"
-              android:viewportWidth="512"
-              android:viewportHeight="512">
+              android:width="90dp"
+              android:height="90dp"
+              android:viewportWidth="90"
+              android:viewportHeight="90">
+              <!-- Kinetic Outer Motion Wave -->
               <path
-                  android:pathData="M115,0 L397,0 C460,0 512,52 512,115 L512,397 C512,460 460,512 397,512 L115,512 C52,512 0,460 0,397 L0,115 C0,52 52,0 115,0 Z">
-                  <aapt:attr name="android:fillColor">
-                      <gradient
-                          android:startX="0"
-                          android:startY="0"
-                          android:endX="512"
-                          android:endY="512"
-                          android:type="linear">
-                          <item android:offset="0.0" android:color="#FF4C1D95" />
-                          <item android:offset="0.5" android:color="#FF7C3AED" />
-                          <item android:offset="1.0" android:color="#FFC026D3" />
-                      </gradient>
-                  </aapt:attr>
-              </path>
-              <path
-                  android:pathData="M140,320 C120,220 200,130 310,130 C370,130 400,170 380,230 C360,290 310,330 240,330"
+                  android:pathData="M24,56 C20,38 35,22 55,22 C65,22 70,29 67,40 C63,51 54,58 42,58"
                   android:strokeColor="#FFE879F9"
-                  android:strokeWidth="26"
+                  android:strokeWidth="5"
                   android:strokeLineCap="round" />
+              <!-- Velocity Ring -->
               <path
-                  android:pathData="M372,192 C392,292 312,382 202,382 C142,382 112,342 132,282 C152,222 202,182 272,182"
+                  android:pathData="M65,33 C68,51 54,67 35,67 C24,67 19,60 23,49 C26,38 35,31 47,31"
                   android:strokeColor="#FFFFFFFF"
-                  android:strokeWidth="20"
+                  android:strokeWidth="3.5"
                   android:strokeLineCap="round"
                   android:strokeAlpha="0.9" />
+              <!-- Sharp Kinetic "M" Core -->
               <path
-                  android:pathData="M180,300 L225,210 L256,260 L287,210 L332,300"
+                  android:pathData="M31,53 L39,37 L45,46 L51,37 L59,53"
                   android:strokeColor="#FFFFFFFF"
-                  android:strokeWidth="24"
+                  android:strokeWidth="4.5"
                   android:strokeLineCap="round"
                   android:strokeLineJoin="round" />
+              <!-- Glowing Yellow Focal Center -->
               <path
-                  android:pathData="M256,256 m-14,0 a14,14 0 1,1 28,0 a14,14 0 1,1 -28,0"
+                  android:pathData="M45,45 m-2.5,0 a2.5,2.5 0 1,1 5,0 a2.5,2.5 0 1,1 -5,0"
                   android:fillColor="#FFFDE047" />
-              <path
-                  android:pathData="M395,95 m-14,0 a14,14 0 1,1 28,0 a14,14 0 1,1 -28,0"
-                  android:fillColor="#FFF43F5E" />
           </vector>
           EOF
 
-          # Overwrite only XML-based adaptive launcher icons cleanly
-          find . -name "ic_launcher*.xml" -exec cp /tmp/ic_launcher_purple.xml {} + || true
+          # 3. Transparentize or replace legacy png foregrounds so the vector renders directly
+          cat << 'EOF' > TMessagesProj_AppStandalone/src/main/res/mipmap-anydpi-v26/ic_launcher_sa.xml
+          <?xml version="1.0" encoding="utf-8"?>
+          <adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">
+              <background android:drawable="@drawable/icon_background_sa" />
+              <foreground android:drawable="@drawable/icon_plane" />
+          </adaptive-icon>
+          EOF
+
+          cat << 'EOF' > TMessagesProj/src/main/res/mipmap-anydpi-v26/ic_launcher.xml
+          <?xml version="1.0" encoding="utf-8"?>
+          <adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">
+              <background android:drawable="@drawable/icon_background" />
+              <foreground android:drawable="@drawable/icon_plane" />
+          </adaptive-icon>
+          EOF
 
       - name: Inject 1:1 iOS UI Theme, Bubble Radius & Colors
         run: |
@@ -142,12 +172,12 @@ jobs:
           APK_FILE=$(find . -name "*.apk" -type f | head -n 1)
           echo "Found APK at: $APK_FILE"
           mkdir -p apk_output
-          cp "$APK_FILE" apk_output/MotionGram-iOS.apk
+          cp "$APK_FILE" apk_output/MotionGram-com.motiongram.app-purple.apk
 
       - name: Upload MotionGram APK Artifact
         uses: actions/upload-artifact@v4
         with:
           name: MotionGram-iOS-APK
-          path: apk_output/MotionGram-iOS.apk
+          path: apk_output/MotionGram-com.motiongram.app-purple.apk
           retention-days: 14
           if-no-files-found: error
