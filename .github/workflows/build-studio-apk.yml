@@ -39,6 +39,34 @@ jobs:
           npx cap add android || true
           npx cap sync android
 
+      - name: Fix Kotlin Stdlib Duplicate Classes in Gradle
+        run: |
+          echo "Applying kotlin-stdlib exclusions to android/build.gradle..."
+          cat << 'EOF' >> android/build.gradle
+
+          allprojects {
+              configurations.all {
+                  exclude group: 'org.jetbrains.kotlin', module: 'kotlin-stdlib-jdk7'
+                  exclude group: 'org.jetbrains.kotlin', module: 'kotlin-stdlib-jdk8'
+              }
+          }
+          subprojects {
+              configurations.all {
+                  exclude group: 'org.jetbrains.kotlin', module: 'kotlin-stdlib-jdk7'
+                  exclude group: 'org.jetbrains.kotlin', module: 'kotlin-stdlib-jdk8'
+              }
+          }
+          EOF
+
+          echo "Applying kotlin-stdlib exclusions to android/app/build.gradle..."
+          cat << 'EOF' >> android/app/build.gradle
+
+          configurations.all {
+              exclude group: 'org.jetbrains.kotlin', module: 'kotlin-stdlib-jdk7'
+              exclude group: 'org.jetbrains.kotlin', module: 'kotlin-stdlib-jdk8'
+          }
+          EOF
+
       - name: Set Custom Purple Vector App Icon
         run: |
           cat << 'EOF' > /tmp/ic_launcher_purple.xml
