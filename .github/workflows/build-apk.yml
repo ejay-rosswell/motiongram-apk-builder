@@ -56,26 +56,24 @@ jobs:
 
       - name: Set Hardcoded Package Name to com.motiongram.app
         run: |
-          echo "Applying com.motiongram.app across project, gradle, and google-services..."
+          echo "Configuring applicationId to com.motiongram.app..."
           
-          # 1. Update APP_PACKAGE in gradle.properties
+          # Disable google-services plugin so it doesn't fail on custom package name
+          sed -i "s/apply plugin: 'com.google.gms.google-services'/\/\/ apply plugin: 'com.google.gms.google-services'/g" TMessagesProj/build.gradle || true
+          sed -i "s/apply plugin: 'com.google.gms.google-services'/\/\/ apply plugin: 'com.google.gms.google-services'/g" TMessagesProj_AppStandalone/build.gradle || true
+          
+          # Update APP_PACKAGE in gradle.properties
           sed -i 's/APP_PACKAGE=org.telegram.messenger/APP_PACKAGE=com.motiongram.app/g' gradle.properties
-
-          # 2. Update all build.gradle files to remove .web suffix and set applicationId
-          find . -name "build.gradle" -exec sed -i 's/applicationIdSuffix ".web"/applicationIdSuffix ""/g' {} + || true
-          find . -name "build.gradle" -exec sed -i 's/defaultConfig.applicationId = APP_PACKAGE/defaultConfig.applicationId = "com.motiongram.app"/g' {} + || true
-          find . -name "build.gradle" -exec sed -i 's/"org.telegram.messenger.web"/"com.motiongram.app"/g' {} + || true
-          find . -name "build.gradle" -exec sed -i 's/"org.telegram.messenger"/"com.motiongram.app"/g' {} + || true
-
-          # 3. Add com.motiongram.app client entry to all google-services.json files so plugin doesn't fail
-          find . -name "google-services.json" -exec sed -i 's/"package_name": "org.telegram.messenger.web"/"package_name": "com.motiongram.app"/g' {} + || true
-          find . -name "google-services.json" -exec sed -i 's/"package_name": "org.telegram.messenger"/"package_name": "com.motiongram.app"/g' {} + || true
+          
+          # Set applicationId to com.motiongram.app in standalone app
+          sed -i 's/applicationIdSuffix ".web"/applicationIdSuffix ""/g' TMessagesProj_AppStandalone/build.gradle
+          sed -i 's/defaultConfig.applicationId = APP_PACKAGE/defaultConfig.applicationId = "com.motiongram.app"/g' TMessagesProj_AppStandalone/build.gradle
 
       - name: Replace Telegram Plane with Kinetic Purple Motion Logo
         run: |
-          echo "Overwriting background gradient and icon foregrounds with Electric Purple Motion Theme..."
+          echo "Injecting Electric Purple Motion Theme assets..."
           
-          # 1. Replace icon background with Vibrant Purple to Fuchsia Gradient
+          # 1. Replace background gradient with Vibrant Purple to Fuchsia
           cat << 'EOF' > TMessagesProj/src/main/res/drawable/icon_background_sa.xml
           <?xml version="1.0" encoding="utf-8"?>
           <shape xmlns:android="http://schemas.android.com/apk/res/android">
@@ -130,7 +128,7 @@ jobs:
           </vector>
           EOF
 
-          # 3. Ensure launcher adaptive icon links to purple background and kinetic plane
+          # 3. Adaptive launcher icon links to purple background and kinetic plane
           cat << 'EOF' > TMessagesProj_AppStandalone/src/main/res/mipmap-anydpi-v26/ic_launcher_sa.xml
           <?xml version="1.0" encoding="utf-8"?>
           <adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">
