@@ -51,21 +51,25 @@ jobs:
 
       - name: Set App Name to MotionGram
         run: |
-          # Rename Application display name to MotionGram in strings.xml
           find . -name "strings.xml" -exec sed -i 's/<string name="AppName">Telegram<\/string>/<string name="AppName">MotionGram<\/string>/g' {} + || true
           find . -name "strings.xml" -exec sed -i 's/<string name="AppNameBeta">Telegram Beta<\/string>/<string name="AppNameBeta">MotionGram<\/string>/g' {} + || true
 
       - name: Set Hardcoded Package Name to com.motiongram.app
         run: |
-          echo "Applying com.motiongram.app to gradle.properties and build.gradle files..."
-          # 1. Update APP_PACKAGE in root gradle.properties
-          sed -i 's/APP_PACKAGE=org.telegram.messenger/APP_PACKAGE=com.motiongram.app/g' gradle.properties
+          echo "Applying com.motiongram.app across project, gradle, and google-services..."
           
-          # 2. Update all build.gradle files (remove .web suffix that standalone appends)
+          # 1. Update APP_PACKAGE in gradle.properties
+          sed -i 's/APP_PACKAGE=org.telegram.messenger/APP_PACKAGE=com.motiongram.app/g' gradle.properties
+
+          # 2. Update all build.gradle files to remove .web suffix and set applicationId
           find . -name "build.gradle" -exec sed -i 's/applicationIdSuffix ".web"/applicationIdSuffix ""/g' {} + || true
           find . -name "build.gradle" -exec sed -i 's/defaultConfig.applicationId = APP_PACKAGE/defaultConfig.applicationId = "com.motiongram.app"/g' {} + || true
           find . -name "build.gradle" -exec sed -i 's/"org.telegram.messenger.web"/"com.motiongram.app"/g' {} + || true
           find . -name "build.gradle" -exec sed -i 's/"org.telegram.messenger"/"com.motiongram.app"/g' {} + || true
+
+          # 3. Add com.motiongram.app client entry to all google-services.json files so plugin doesn't fail
+          find . -name "google-services.json" -exec sed -i 's/"package_name": "org.telegram.messenger.web"/"package_name": "com.motiongram.app"/g' {} + || true
+          find . -name "google-services.json" -exec sed -i 's/"package_name": "org.telegram.messenger"/"package_name": "com.motiongram.app"/g' {} + || true
 
       - name: Replace Telegram Plane with Kinetic Purple Motion Logo
         run: |
@@ -103,34 +107,30 @@ jobs:
               android:height="90dp"
               android:viewportWidth="90"
               android:viewportHeight="90">
-              <!-- Kinetic Outer Motion Wave -->
               <path
                   android:pathData="M24,56 C20,38 35,22 55,22 C65,22 70,29 67,40 C63,51 54,58 42,58"
                   android:strokeColor="#FFE879F9"
                   android:strokeWidth="5"
                   android:strokeLineCap="round" />
-              <!-- Velocity Ring -->
               <path
                   android:pathData="M65,33 C68,51 54,67 35,67 C24,67 19,60 23,49 C26,38 35,31 47,31"
                   android:strokeColor="#FFFFFFFF"
                   android:strokeWidth="3.5"
                   android:strokeLineCap="round"
                   android:strokeAlpha="0.9" />
-              <!-- Sharp Kinetic "M" Core -->
               <path
                   android:pathData="M31,53 L39,37 L45,46 L51,37 L59,53"
                   android:strokeColor="#FFFFFFFF"
                   android:strokeWidth="4.5"
                   android:strokeLineCap="round"
                   android:strokeLineJoin="round" />
-              <!-- Glowing Yellow Focal Center -->
               <path
                   android:pathData="M45,45 m-2.5,0 a2.5,2.5 0 1,1 5,0 a2.5,2.5 0 1,1 -5,0"
                   android:fillColor="#FFFDE047" />
           </vector>
           EOF
 
-          # 3. Transparentize or replace legacy png foregrounds so the vector renders directly
+          # 3. Ensure launcher adaptive icon links to purple background and kinetic plane
           cat << 'EOF' > TMessagesProj_AppStandalone/src/main/res/mipmap-anydpi-v26/ic_launcher_sa.xml
           <?xml version="1.0" encoding="utf-8"?>
           <adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">
